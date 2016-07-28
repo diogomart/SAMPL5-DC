@@ -19,6 +19,17 @@ Estimates the following:
 3. Edit line X in empiricalSES.py to match the path to MSMS binary
 
 ## Usage
-...bash
+```bash
+python /path/to/empiricalSES.py --help
+```
+typically usage looks like:
+```bash
 python /path/to/empiricalSES.py molecule.pdb
-...
+```
+or
+```bash
+python /path/to/empiricalSES.py mymols/*.pdb
+```
+
+### Output
+Example output
