@@ -1,6 +1,7 @@
 # SAMPL5-DC
 
 Estimates the following:
+
 1. free energy of hydration
 2. free energy of solvation in cyclohexane
 3. cyclohexane/water partition coefficient
@@ -18,5 +19,6 @@ Estimates the following:
 3. Edit line X in empiricalSES.py to match the path to MSMS binary
 
 ## Usage
+...bash
 python /path/to/empiricalSES.py molecule.pdb
-
+...
