@@ -6,11 +6,9 @@ TMP = '/tmp/empiricalSES'
 
 import sys
 import subprocess
-from omg import iolines
 from glob import glob
 import os
 import openbabel, pybel
-import numpy as np
 import argparse
 
 MYVDW = {
