@@ -1,6 +1,8 @@
 # SAMPL5-DC
 
-Estimates the following:
+https://www.drugdesigndata.org/about/sampl5
+
+The script empiricalSES.py predicts log D as in submission #49. It estimates:
 
 1. free energy of hydration
 2. free energy of solvation in cyclohexane
