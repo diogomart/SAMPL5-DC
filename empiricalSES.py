@@ -10,6 +10,7 @@ from glob import glob
 import os
 import openbabel, pybel
 import argparse
+import numpy as np
 
 MYVDW = {
   1:1.20,  6:1.70,  7:1.55,  8:1.52, 9:1.47, 15:1.80,
@@ -231,7 +232,7 @@ class RunMSMS():
         areas.append(chrg)
         return areas
 
-# atomic solvation parameters for water
+# atomic solvation parameters for water (SAMPL5 submission #49)
 w_dict = {
     "H"     :  0.011220,
     "HD"    : -0.193517,
@@ -245,11 +246,21 @@ w_dict = {
     "charge": -0.246878,
     "C":0, "N":0, "O2":0, "P":0, "S":0, "Br":0, "I":0
 }
-w_vec = [w_dict[atype] for atype in atype_order + ['charge']]
 
-# atomic solvation parameter for cyclohexane
-o_vec = [-0.036 for atype in atype_order ]
-o_vec += [0.0] # charge
+retrospective3 = { # experiment 3 described in the paper
+    "H"     : 0.011060,
+    "HD"    :-0.194640,
+    "A"     :-0.012470,
+    "NHA"    :-0.175199,
+    "NH"    :-0.129773,
+    "NA"    : 0,
+    "O1"    :-0.043049,
+    "F"     : 0.072622,
+    "Cl"    : 0.013764,
+    "charge":-0.244374,
+    "C":0, "N":0, "O2":0, "P":0, "S":0, "Br":0, "I":0
+}
+
 
 
 def get_args():
@@ -300,6 +311,14 @@ or set a different temporary folder at line 5 of this script\n')
     K = -2.303 * RT
     
     args = get_args() 
+
+    # atomic solvation parameters
+    if args.retrospective3:
+        w_vec = [retrospective3[atype] for atype in atype_order + ['charge']]
+    else:
+        w_vec = [w_dict[atype] for atype in atype_order + ['charge']]
+    o_vec = [-0.036 for atype in atype_order ]
+    o_vec += [0.0] # charge
     
     # print header
     largest_fname = max([len(fname) for fname in args.molecules])

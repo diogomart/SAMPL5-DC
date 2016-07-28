@@ -9,9 +9,10 @@ Estimates the following:
 ### Requirements / dependencies
 * Works on Linux
 * Python 
-* openbabel (v2.3.2 available through apt-get)
-* python-openbabel (available through apt-get)
-* MSMS (http://mgltools.scripps.edu/downloads)
+* openbabel         (v2.3.2 available through apt-get)
+* python-openbabel  (available through apt-get)
+* python-numpy      (available through apt-get)
+* MSMS              (http://mgltools.scripps.edu/downloads)
 
 ### Setup
 1. Download the script (empiricalSES.py)
