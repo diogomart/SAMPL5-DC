@@ -21,13 +21,7 @@ Estimates the following:
 ## Usage
 ```bash
 python /path/to/empiricalSES.py --help
-```
-typically usage looks like:
-```bash
 python /path/to/empiricalSES.py molecule.pdb
-```
-or
-```bash
 python /path/to/empiricalSES.py mymols/*.pdb
 ```
 
