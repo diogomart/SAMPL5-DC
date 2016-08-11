@@ -18,7 +18,7 @@ MYVDW = {
 }
 
 atype_order = [
-    'H','HD','C','A','N','NHA','NH','NA','O1',
+    'H','HD','C','A','N','NHA','NH','NA','O',
     'F','P','S','Cl','Br', 'I']
 
 # element, hbond-acc, polar-hydrogen, aromatic
@@ -31,8 +31,8 @@ atype_dict = {
     (7,   True,False, True) : 'NHA',
     (7,   True,False,False) : 'NH',
     (7,  False,False, True) : 'NA',
-    (8,   True,False,False) : 'O1',
-    (8,   True,False, True) : 'O1',
+    (8,   True,False,False) : 'O',
+    (8,   True,False, True) : 'O',
     (9,   True,False,False) : 'F',
     (15, False,False,False) : 'P',
     (16, False,False, True) : 'S',
@@ -40,6 +40,35 @@ atype_dict = {
     (17, False, False, False) : 'Cl',
     (35, False, False, False) : 'Br',
     (53, False, False, False) : 'I'
+}
+
+# atomic solvation parameters for water (SAMPL5 submission #49)
+w_dict = {
+    "H"     :  0.011220,
+    "HD"    : -0.193517,
+    "A"     : -0.012638,
+    "NHA"    : -0.185590,
+    "NH"    : -0.128712,
+    "NA"    : -0.626621,
+    "O"    : -0.042211,
+    "F"     :  0.072437,
+    "Cl"    :  0.013931,
+    "charge": -0.246878,
+    "C":0, "N":0, "O2":0, "P":0, "S":0, "Br":0, "I":0
+}
+
+retrospective3 = { # experiment 3 described in the paper
+    "H"     : 0.011060,
+    "HD"    :-0.194640,
+    "A"     :-0.012470,
+    "NHA"    :-0.175199,
+    "NH"    :-0.129773,
+    "NA"    : 0,
+    "O"    :-0.043049,
+    "F"     : 0.072622,
+    "Cl"    : 0.013764,
+    "charge":-0.244374,
+    "C":0, "N":0, "O2":0, "P":0, "S":0, "Br":0, "I":0
 }
 
 flags = [
@@ -232,36 +261,6 @@ class RunMSMS():
         areas.append(chrg)
         return areas
 
-# atomic solvation parameters for water (SAMPL5 submission #49)
-w_dict = {
-    "H"     :  0.011220,
-    "HD"    : -0.193517,
-    "A"     : -0.012638,
-    "NHA"    : -0.185590,
-    "NH"    : -0.128712,
-    "NA"    : -0.626621,
-    "O1"    : -0.042211,
-    "F"     :  0.072437,
-    "Cl"    :  0.013931,
-    "charge": -0.246878,
-    "C":0, "N":0, "O2":0, "P":0, "S":0, "Br":0, "I":0
-}
-
-retrospective3 = { # experiment 3 described in the paper
-    "H"     : 0.011060,
-    "HD"    :-0.194640,
-    "A"     :-0.012470,
-    "NHA"    :-0.175199,
-    "NH"    :-0.129773,
-    "NA"    : 0,
-    "O1"    :-0.043049,
-    "F"     : 0.072622,
-    "Cl"    : 0.013764,
-    "charge":-0.244374,
-    "C":0, "N":0, "O2":0, "P":0, "S":0, "Br":0, "I":0
-}
-
-
 
 def get_args():
     parser = argparse.ArgumentParser(description="""
@@ -285,6 +284,17 @@ is to compute Gasteiger-Marsili charges with openbabel;\n\
 this would require recalibrating the parameters\n',
             default=False,
             action='store_true')
+    parser.add_argument('--makedatafiles',
+            help=' Write partial charges, atypes and SES for each atom.\n\
+Also writes cumulative area for each atom type\n\
+Output filenames are based on input but end with .empiricalSES.csv\n',
+            default=False,
+            action='store_true')
+    parser.add_argument('--overwrite',
+            help=' Overwrite datafiles .empiricalSES.csv files if existent.\n',
+            default=False,
+            action='store_true')
+
     args = parser.parse_args()
     for fname in args.molecules:
         if not os.path.exists(fname):
@@ -292,9 +302,51 @@ this would require recalibrating the parameters\n',
             sys.exit(2)
     return args
 
+def makedatafile(fname, msmsobj, data_fname, args):
+    """some code repeated from RunMSMS._get_atomtypes()"""
+
+    # read molecule (this should be done only once)
+    extension = os.path.splitext(fname)[1].strip('.')
+    obmol = pybel.readfile(extension, fname).next().OBMol
+
+    if not args.readcharges:
+        obmol.UnsetPartialChargesPerceived()
+
+    text = '#   ,atomic nr,name,        X,        Y,        Z,\
+  charge,atype,       SES\n'
+    line = 'ATOM,%9d,%4s,%9.4f,%9.4f,%9.4f,%8.5f,%5s,%10.5f\n'
+    i = 0 # atom index
+    for atom in openbabel.OBMolAtomIter(obmol):  
+        # residue info for label
+        r = atom.GetResidue()
+        name = r.GetAtomID(atom).strip()
+        x, y, z = atom.GetX(), atom.GetY(), atom.GetZ()
+        atomicnr = atom.GetAtomicNum()
+        chrg = atom.GetPartialCharge()
+        atypekey = (
+            atom.GetAtomicNum(),
+            atom.IsHbondAcceptor(),
+            atom.IsPolarHydrogen(),
+            atom.IsAromatic()
+        )
+        atype = atype_dict[atypekey]
+        # get atom SES area
+        ses = sum([surfcomp.ses_ana_byatom[i] for surfcomp in msmsobj.msms])
+        text += line % (atomicnr, name, x, y, z, chrg, atype, ses)
+        i += 1 
+    # print cumulative areas by atom type
+    text += '# Cumulative SES by atom type\n'
+    header = ','.join(['%10s' % atype for atype in atype_order + ['charge']])
+    text += '#' + header[1:] + '\n'
+    text += ','.join([
+        '%10.5f' % cumarea for cumarea in msmsobj.get_areas()]) + '\n'
+    f = open(data_fname, 'w')
+    f.write(text)
+    f.close()
+
 def main():
 
-    # check temporary folder
+    # check temporary folder for temporary MSMS files
     if os.path.exists(TMP):
         sys.stderr.write('Unable to create temporary folder %s\n' % TMP)
         sys.stderr.write('Most likely it has been created by an unsuccessful\
@@ -303,14 +355,15 @@ You can delete it if there is nothing important in it,\n\
 or set a different temporary folder at line 5 of this script\n')
         sys.exit(2)
 
+    # parse input
+    args = get_args() 
+
     # temperature and other stuff
     T = 293
     R = 8.3144598 / 1000.0
     R /= 4.184
     RT = R*T
     K = -2.303 * RT
-    
-    args = get_args() 
 
     # atomic solvation parameters
     if args.retrospective3:
@@ -328,6 +381,7 @@ or set a different temporary folder at line 5 of this script\n')
     line = '%-' + '%d' % largest_fname + 's,%10.3f,%11.3f,%14.3f'
     
     for mol_fname in args.molecules:
+
         x = RunMSMS(mol_fname, args.readcharges)
         areas = x.get_areas()
     
@@ -337,6 +391,15 @@ or set a different temporary folder at line 5 of this script\n')
         logD = (chex_dGsol - wat_dGsol)/K
     
         print line % (mol_fname, wat_dGsol, chex_dGsol, logD)
+
+        # print charges, atypes and SES to .csv file
+        if args.makedatafiles:
+            data_fname = os.path.splitext(mol_fname)[0] + '.empiricalSES.csv'
+            if os.path.exists(data_fname) and not args.overwrite:
+                sys.stderr.write('File exists: %s   ' % data_fname)
+                sys.stderr.write('Use --overwrite or delete it.\n')
+            else:
+                makedatafile(mol_fname, x, data_fname, args)
 
 if __name__ == '__main__':
     main()
